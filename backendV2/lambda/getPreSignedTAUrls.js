@@ -1,9 +1,9 @@
-const AWS = require('aws-sdk');
+import {S3Client} from '@aws-sdk/client-s3';
 const s3UrlLib = require('./makePreSignedUrls')
 const BUCKET_NAME = process.env['BUCKET_NAME'];
 const URL_EXPIRES = process.env['URL_EXPIRES'];
 
-const s3 = new AWS.S3({useAccelerateEndpoint: true});
+const s3 = new S3Client({useAccelerateEndpoint: true});
 
 exports.handler = async (event) => {
 	console.log(event);
