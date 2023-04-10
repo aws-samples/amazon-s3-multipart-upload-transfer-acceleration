@@ -1,9 +1,11 @@
 import * as cdk from 'aws-cdk-lib';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigw from 'aws-cdk-lib/aws-apigateway';
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as iam from "aws-cdk-lib/aws-iam"
 import { BucketEncryption } from 'aws-cdk-lib/aws-s3';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import { Runtime } from 'aws-cdk-lib/aws-lambda';
+import { join } from 'path';
 
 export class MultipartS3UploadStack extends cdk.Stack {
   constructor(scope: cdk.App, id: string, props?: cdk.StackProps) {
@@ -71,47 +73,45 @@ export class MultipartS3UploadStack extends cdk.Stack {
       policy: apiResourcePolicy,
     });
 
-    const initializeLambda = new lambda.Function(this, 'initializeHandler', {
-      runtime: lambda.Runtime.NODEJS_16_X,
-      code: lambda.Code.fromAsset('lambda',{
-        exclude: ['finalize.js','getPreSignedUrls.js','getPreSignedTAUrls.js','makePreSignedUrls.js']
-      }),
-      handler: 'initialize.handler',
+    const commonNodeJsProps = {
+      bundling: {
+        externalModules: [
+          '@aws-sdk/client-s3',
+          '@aws-sdk/s3-request-presigner',
+        ],
+      },
+      runtime: Runtime.NODEJS_18_X,
+    };
+
+    const initializeLambda = new NodejsFunction(this, 'initializeHandler', {
+      ...commonNodeJsProps,
+      entry: join(__dirname, '../lambda/initialize.js'),
       environment: {
         BUCKET_NAME: s3Bucket.bucketName
       },
       functionName: `multipart-upload-initialize-${env}`
     });
-    const getPreSignedUrlsLambda = new lambda.Function(this, 'getPreSignedUrlsHandler', {
-      runtime: lambda.Runtime.NODEJS_16_X,
-      code: lambda.Code.fromAsset('lambda',{
-        exclude: ['finalize.js','initialize.js','getPreSignedTAUrls.js']
-      }),
-      handler: 'getPreSignedUrls.handler',
+    const getPreSignedUrlsLambda = new NodejsFunction(this, 'getPreSignedUrlsHandler', {
+      ...commonNodeJsProps,
+      entry: join(__dirname, '../lambda/getPreSignedUrls.js'),
       environment: {
         BUCKET_NAME: s3Bucket.bucketName,
         URL_EXPIRES: expires
       },
       functionName: `multipart-upload-getPreSignedUrls-${env}`
     });
-    const getPreSignedTAUrlsLambda = new lambda.Function(this, 'getPreSignedTAUrlsHandler', {
-      runtime: lambda.Runtime.NODEJS_16_X,
-      code: lambda.Code.fromAsset('lambda',{
-        exclude: ['finalize.js','initialize.js','getPreSignedUrls.js']
-      }),
-      handler: 'getPreSignedTAUrls.handler',
+    const getPreSignedTAUrlsLambda = new NodejsFunction(this, 'getPreSignedTAUrlsHandler', {
+      ...commonNodeJsProps,
+      entry: join(__dirname, '../lambda/getPreSignedTAUrls.js'),
       environment: {
         BUCKET_NAME: s3Bucket.bucketName,
         URL_EXPIRES: expires
       },
       functionName: `multipart-upload-getPreSignedTAUrls-${env}`
     });
-    const finalizeLambda = new lambda.Function(this, 'finalizeHandler', {
-      runtime: lambda.Runtime.NODEJS_16_X,
-      code: lambda.Code.fromAsset('lambda',{
-        exclude: ['getPreSignedUrls.js','initialize.js','getPreSignedTAUrls.js','makePreSignedUrls.js']
-      }),
-      handler: 'finalize.handler',
+    const finalizeLambda = new NodejsFunction(this, 'finalizeHandler', {
+      ...commonNodeJsProps,
+      entry: join(__dirname, '../lambda/finalize.js'),
       environment: {
         BUCKET_NAME: s3Bucket.bucketName
       },

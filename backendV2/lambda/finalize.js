@@ -1,8 +1,8 @@
-const AWS = require('aws-sdk');
+import { S3Client, CompleteMultipartUploadCommand } from '@aws-sdk/client-s3';
 
 const BUCKET_NAME = process.env['BUCKET_NAME'];
 
-const s3 = new AWS.S3();
+const s3 = new S3Client();
 
 exports.handler = async (event) => {
 	console.log(event);
@@ -14,20 +14,21 @@ exports.handler = async (event) => {
 			Key: fileKey,
 			UploadId: fileId,
 			MultipartUpload: {
-			  // ordering the parts to make sure they are in the right order
-			  Parts: sortedProducts
+				// ordering the parts to make sure they are in the right order
+				Parts: sortedProducts
 			},
 		}
-	  
-		await s3.completeMultipartUpload(multipartParams).promise()
-		
+
+		const command = new CompleteMultipartUploadCommand(multipartParams);
+		await s3.send(command);
+
 		return {
 			statusCode: 200,
 			headers: {
-			'Access-Control-Allow-Origin': '*'
+				'Access-Control-Allow-Origin': '*'
 			}
-		};	
-    }else{
+		};
+	} else {
 		throw new Error("event.body is not defined");
-	}    
+	}
 }

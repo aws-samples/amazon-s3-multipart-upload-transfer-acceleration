@@ -1,4 +1,7 @@
-async function makePreSignedUrls(s3,bucket_name, url_expiration, payload){
+import { UploadPartCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+
+async function makePreSignedUrls(s3, bucket_name, url_expiration, payload) {
     const { fileKey, fileId, parts } = JSON.parse(payload)
 
     const multipartParams = {
@@ -10,12 +13,12 @@ async function makePreSignedUrls(s3,bucket_name, url_expiration, payload){
     const promises = []
 
     for (let index = 0; index < parts; index++) {
-        promises.push(
-            s3.getSignedUrlPromise("uploadPart", {
+        const command = new UploadPartCommand({
             ...multipartParams,
             PartNumber: index + 1,
-            Expires: parseInt(url_expiration)
-            }),
+        });
+        promises.push(
+            getSignedUrl(s3, command, { expiresIn: parseInt(url_expiration) }),
         )
     }
 
@@ -26,7 +29,7 @@ async function makePreSignedUrls(s3,bucket_name, url_expiration, payload){
             signedUrl: signedUrl,
             PartNumber: index + 1,
         }
-    })    
-    
+    })
+
 }
 module.exports.makePreSignedUrls = makePreSignedUrls
