@@ -16,6 +16,9 @@ This prototype project is intended to show a way to implement multipart upload a
 cdk deploy --context env="randnumber" --context whitelistip="xx.xx.xxx.xxx"
 ```
 An additional context variable called "urlExpiry" can be used to set specific expiration time on the S3 presigned URL. The default value is set at 300 seconds (5 min). A new S3 bucket with the name "document-upload-bucket-randnumber" is created for storing the uploaded files, and the whitelistip value is used to allow API Gateway access from this IP address only. 
+
+An additional context variable called "functionTimeout" can be used to set specific timeout for the AWS Lambda function responsible for generating presigned URLs. With a higher number of parts, timeouts may occur, but it can be extended as needed.
+
 - Make note of the API Gateway endpoint URL.
 
 ### Frontend 

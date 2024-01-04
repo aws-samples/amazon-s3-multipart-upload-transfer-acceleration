@@ -12,6 +12,7 @@ export class MultipartS3UploadStack extends cdk.Stack {
     super(scope, id, props);
     const env = cdk.Stack.of(this).node.tryGetContext('env');
     const expires = cdk.Stack.of(this).node.tryGetContext('urlExpiry') ?? '300';
+    const timeout = Number(cdk.Stack.of(this).node.tryGetContext('functionTimeout') ?? '3');
 
     const s3Bucket = new s3.Bucket(this, "document-upload-bucket", {
       bucketName: `document-client-upload-${env}`,
@@ -98,7 +99,8 @@ export class MultipartS3UploadStack extends cdk.Stack {
         BUCKET_NAME: s3Bucket.bucketName,
         URL_EXPIRES: expires
       },
-      functionName: `multipart-upload-getPreSignedUrls-${env}`
+      functionName: `multipart-upload-getPreSignedUrls-${env}`,
+      timeout: cdk.Duration.seconds(timeout)
     });
     const getPreSignedTAUrlsLambda = new NodejsFunction(this, 'getPreSignedTAUrlsHandler', {
       ...commonNodeJsProps,
@@ -107,7 +109,8 @@ export class MultipartS3UploadStack extends cdk.Stack {
         BUCKET_NAME: s3Bucket.bucketName,
         URL_EXPIRES: expires
       },
-      functionName: `multipart-upload-getPreSignedTAUrls-${env}`
+      functionName: `multipart-upload-getPreSignedTAUrls-${env}`,
+      timeout: cdk.Duration.seconds(timeout)
     });
     const finalizeLambda = new NodejsFunction(this, 'finalizeHandler', {
       ...commonNodeJsProps,
