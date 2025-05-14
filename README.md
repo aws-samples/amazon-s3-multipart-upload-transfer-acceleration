@@ -21,6 +21,45 @@ An additional context variable called "functionTimeout" can be used to set speci
 
 - Make note of the API Gateway endpoint URL.
 
+#### Common Deployment Issues:
+1. 403 Access Denied
+
+If your AWS account/IAM role does not have the permission/privilege to enable transfer acceleration on a bucket, this deployment will fail. The logs throw `403 Access Denied`. When this happens, set `transferAcceleration` to false as shown below and try to deploy again.
+
+```
+const s3Bucket = new s3.Bucket(this, "document-upload-bucket", {
+      bucketName: `document-client-upload-${env}`,
+      lifecycleRules: [{
+        expiration: cdk.Duration.days(10),
+        abortIncompleteMultipartUploadAfter: cdk.Duration.days(1),
+      }],
+      blockPublicAccess: {
+        blockPublicAcls: true,
+        blockPublicPolicy: true,
+        ignorePublicAcls: true,
+        restrictPublicBuckets: true,
+      },
+      encryption: BucketEncryption.S3_MANAGED,
+      enforceSSL: true,
+      transferAcceleration: false, // set this to false
+      cors: [{
+        allowedOrigins: ["*"],
+        allowedHeaders: ["*"],
+        allowedMethods: [
+          s3.HttpMethods.GET,
+          s3.HttpMethods.PUT,
+          s3.HttpMethods.POST,
+        ],
+        exposedHeaders: ['ETag'],
+      }],
+      removalPolicy: cdk.RemovalPolicy.DESTROY
+    });
+```
+
+You will set `transferAcceleration` to false in [backendV2/lib/multipart_s3_upload-stack.ts](https://github.com/aws-samples/amazon-s3-multipart-upload-transfer-acceleration/blob/main/backendV2/lib/multipart_s3_upload-stack.ts#L31)
+
+If the deployment works with this, try to enable transfer acceleration from the AWS console. If the issue still persists, you need to contact AWS support to resolve this issue. 
+
 ### Frontend 
 - From the frontend folder, run "npm install" to install the packages.
 - Optionally, you can run "npm audit --production" to check on vulnerabilities.
